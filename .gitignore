@@ -1,0 +1,10 @@
+# Bỏ qua tất cả các tệp có phần mở rộng .log
+*.log
+
+# Bỏ qua thư mục 
+node_modules/
+uploads/
+
+# Bỏ qua tệp config.json cụ thể
+config.json
+package-lock.json

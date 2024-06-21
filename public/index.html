@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to Excel Converter</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link to external CSS file -->
+</head>
+<body>
+    <h1>CSV to Excel Converter</h1>
+    <form id="convert-form" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="csvfiles">Upload CSV Files:</label>
+            <input type="file" id="csvfiles" name="csvfiles" accept=".csv" multiple required>
+        </div>
+        <div class="form-group">
+            <label for="componentScore">Điểm thành phần:</label>
+            <input id="componentScore" name="componentScore">
+        </div>
+        <div class="form-group">
+            <label for="finalScore">Điểm cuối kỳ:</label>
+            <input id="finalScore" name="finalScore">
+        </div>
+        <button type="submit">Convert to Excel</button>
+    </form>
+
+    <div class="footer">
+        <p>This is the footer section.</p>
+        <p>Any additional content or styling specific to the bottom part of the page can go here.</p>
+    </div>
+
+    <script>
+        document.getElementById('convert-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const response = await fetch('/convert', {
+                method: 'POST',
+                body: formData
+            });
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        });
+    </script>
+</body>
+</html>
