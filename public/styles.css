@@ -54,3 +54,32 @@ button[type=submit]:hover {
     bottom: 0;
     width: 100%;
 }
+
+.placeholder {
+    font-style: italic;
+}
+
+.instructions {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 14px; 
+    font-style: italic; 
+    color: #666; 
+}
+
+.instructions h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.instructions ol {
+    padding-left: 20px;
+}
+
+.instructions li {
+    margin-bottom: 10px;
+}

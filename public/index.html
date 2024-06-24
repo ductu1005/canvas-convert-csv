@@ -11,25 +11,146 @@
     <form id="convert-form" enctype="multipart/form-data">
         <div class="form-group">
             <label for="csvfiles">Upload CSV Files:</label>
-            <input type="file" id="csvfiles" name="csvfiles" accept=".csv" multiple required>
+            <input type="file" id="csvfiles" name="csvfiles" accept=".csv" multiple required oninput="handleFileUpload()">
+        </div>
+        <div class="form-group">
+            <label for="scoreType">Năm học:</label>
+            <select id="scoreType" name="scoreType">
+                <option>2023-2024 học kỳ 2</option>
+                <option>2024-2025 học kỳ 1</option>
+                <option>2024-2025 học kỳ 2</option>
+            </select>
         </div>
         <div class="form-group">
             <label for="componentScore">Điểm thành phần:</label>
-            <input id="componentScore" name="componentScore">
+            <select id="componentScore" name="componentScore" class="placeholder">
+                <option value="">Chọn tên cột</option>
+            </select>
         </div>
         <div class="form-group">
             <label for="finalScore">Điểm cuối kỳ:</label>
-            <input id="finalScore" name="finalScore">
+            <select id="finalScore" name="finalScore" class="placeholder">
+                <option value="">Chọn tên cột</option>
+            </select>
         </div>
-        <button type="submit">Convert to Excel</button>
+        <button type="submit" >Convert to Excel</button> 
     </form>
 
-    <div class="footer">
-        <p>This is the footer section.</p>
-        <p>Any additional content or styling specific to the bottom part of the page can go here.</p>
+    <div class="instructions">
+        <h2><a href="public\docx\doc_csv_excel.docx" download>Hướng dẫn sử dụng:</a></h2>
+        <ol>
+            <li>Nhấp vào "Upload CSV Files" để tải lên các tệp điểm CSV từ Canvas.</li>
+            <li>Nhập năm học và kì học vào ô "Năm học".</li>
+            <li>Chọn tên cột từ các menu thả xuống để lấy điểm cho "Điểm thành phần" và "Điểm cuối kỳ".</li>
+            <li>Nhấp vào nút "Convert to Excel" để chuyển đổi các tệp CSV thành tệp Excel.</li>
+        </ol>
     </div>
 
     <script>
+        const excludedColumns = [
+            'Student', 
+            'ID', 
+            'SIS User ID', 
+            'SIS Login ID', 
+            'Integration ID', 
+            'Section',
+            'Imported Assignments Current Points',
+            'Imported Assignments Final Points', 
+            'Imported Assignments Current Score', 
+            'Imported Assignments Unposted Current Score',
+            'Imported Assignments Final Score', 
+            'Imported Assignments Unposted Final Score', 
+            'Current Points',
+            'Final Points', 
+            'Current Score',  
+            'Unposted Current Score',
+            'Final Score', 
+            'Unposted Final Score'
+        ];
+
+
+        function removeNumbersInParentheses(str) {
+            return str.replace(/\s*\(\d+\)$/, '');
+        }
+
+        async function getFirstRowFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const csvContent = event.target.result;
+                    const lines = csvContent.split(/\r\n|\n/);
+                    if (lines.length > 0) {
+                        const firstRow = lines[0].split(',');
+                        resolve(firstRow);
+                    } else {
+                        reject(new Error('Empty CSV file'));
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsText(file);
+            });
+        }
+
+            async function getCommonColumns(files) {
+                let commonColumns = [];
+                for (const file of files) {
+                    try {
+                        const firstRow = await getFirstRowFromFile(file);
+                        const filteredColumns = [];
+                        for (let i = 0; i < firstRow.length; i++) {
+                            const processedColumn = removeNumbersInParentheses(firstRow[i]);
+                            if (processedColumn !== null) {
+                                filteredColumns.push(processedColumn);
+                            }
+                        }
+                        if (commonColumns.length === 0) {
+                            commonColumns = filteredColumns;
+                        } else {
+                            commonColumns = commonColumns.filter(column => filteredColumns.includes(column));
+                        }
+                    } catch (error) {
+                        console.error('Error reading CSV file:', error);
+                    }
+                }
+                return commonColumns;
+            }
+
+        async function populateSelectOptions(files) {
+            try {
+                const commonColumns = await getCommonColumns(files);
+                const componentScoreSelect = document.getElementById('componentScore');
+                const finalScoreSelect = document.getElementById('finalScore');
+
+                componentScoreSelect.innerHTML = '<option value="">Chọn tên cột</option>';
+                finalScoreSelect.innerHTML = '<option value="">Chọn tên cột</option>';
+
+                commonColumns.forEach((columnName) => {
+                    if (!excludedColumns.includes(columnName)) {
+                        const option = document.createElement('option');
+                        option.value = columnName.trim();
+                        option.textContent = columnName.trim();
+
+                        const clonedOption = option.cloneNode(true);
+                        componentScoreSelect.appendChild(option);
+                        finalScoreSelect.appendChild(clonedOption);
+                    }
+                    
+                });
+            } catch (error) {
+                console.error('Error reading CSV files:', error);
+                alert('Error reading CSV files. Please try again.');
+            }
+        }
+
+        function handleFileUpload() {
+            const fileInput = document.getElementById('csvfiles');
+            const files = fileInput.files;
+
+            if (files.length > 0) {
+                populateSelectOptions(files);
+            }
+        }
+
         document.getElementById('convert-form').addEventListener('submit', async (event) => {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -38,13 +159,21 @@
                 body: formData
             });
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'data.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            
+            // Check if response is a ZIP file
+            if (response.headers.get('Content-Type').includes('application/zip')) {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted_files.zip'; // Set download file name
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                const errorMessage = await blob.text();
+                console.error('Error converting CSV to Excel:', errorMessage);
+                alert('Error converting CSV to Excel. Please try again later.');
+            }
         });
     </script>
 </body>
